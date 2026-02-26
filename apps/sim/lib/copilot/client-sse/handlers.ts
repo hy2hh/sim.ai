@@ -905,17 +905,34 @@ export const sseHandlers: Record<string, SSEHandler> = {
     }
   },
   error: (data, context, _get, set) => {
-    logger.error('Stream error:', data.error)
+    const payload = asRecord(data?.data)
+    const rawMessage =
+      (typeof data?.error === 'string' && data.error) ||
+      (typeof payload.message === 'string' && payload.message) ||
+      (typeof payload.error === 'string' && payload.error) ||
+      'An error occurred.'
+
+    const normalized = rawMessage.toLowerCase()
+    const isProviderUnavailable =
+      normalized.includes('command not found') ||
+      normalized.includes('provider unavailable') ||
+      normalized.includes('[claude]') ||
+      normalized.includes('[gemini]') ||
+      normalized.includes('[codex]')
+
+    logger.error('Stream error:', rawMessage)
     set((state: CopilotStore) => ({
       messages: state.messages.map((msg) =>
         msg.id === context.messageId
           ? {
               ...msg,
-              content: context.accumulatedContent || 'An error occurred.',
-              error: data.error,
+              content: context.accumulatedContent || rawMessage,
+              error: rawMessage,
             }
           : msg
       ),
+      error: rawMessage,
+      providerStatusError: isProviderUnavailable ? rawMessage : state.providerStatusError,
     }))
     context.streamComplete = true
   },

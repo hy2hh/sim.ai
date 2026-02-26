@@ -10,6 +10,7 @@ import {
   PopoverScrollArea,
 } from '@/components/emcn'
 import { AnthropicIcon, AzureIcon, BedrockIcon, GeminiIcon, OpenAIIcon } from '@/components/icons'
+import { cn } from '@/lib/core/utils/cn'
 import { useCopilotStore } from '@/stores/panel'
 
 interface ModelSelectorProps {
@@ -19,6 +20,8 @@ interface ModelSelectorProps {
   isNearTop: boolean
   /** Callback when model is selected */
   onModelSelect: (model: string) => void
+  /** Provider-level availability error shown in/near this selector */
+  errorMessage?: string | null
 }
 
 /**
@@ -47,7 +50,12 @@ function getIconForProvider(provider: string): React.ComponentType<{ className?:
  * @param props - Component props
  * @returns Rendered model selector dropdown
  */
-export function ModelSelector({ selectedModel, isNearTop, onModelSelect }: ModelSelectorProps) {
+export function ModelSelector({
+  selectedModel,
+  isNearTop,
+  onModelSelect,
+  errorMessage,
+}: ModelSelectorProps) {
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLDivElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
@@ -145,9 +153,14 @@ export function ModelSelector({ selectedModel, isNearTop, onModelSelect }: Model
         <div ref={triggerRef} className='min-w-0 max-w-full'>
           <Badge
             variant='outline'
-            className='min-w-0 max-w-full cursor-pointer rounded-[6px]'
+            className={cn(
+              'min-w-0 max-w-full cursor-pointer rounded-[6px]',
+              errorMessage &&
+                'border-[var(--text-error)] text-[var(--text-error)] hover:border-[var(--text-error)]'
+            )}
             title='Choose model'
             aria-expanded={open}
+            aria-invalid={Boolean(errorMessage)}
             onMouseDown={(e) => {
               e.stopPropagation()
               setOpen((prev) => !prev)
@@ -167,6 +180,9 @@ export function ModelSelector({ selectedModel, isNearTop, onModelSelect }: Model
         onOpenAutoFocus={(e) => e.preventDefault()}
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
+        {errorMessage ? (
+          <div className='px-2 pb-1 text-[11px] text-[var(--text-error)]'>{errorMessage}</div>
+        ) : null}
         <PopoverScrollArea className='space-y-[2px]'>
           {modelOptions.length > 0 ? (
             modelOptions.map((option) => (

@@ -464,7 +464,12 @@ function prepareSendContext(
   }
 
   const nextAbortController = new AbortController()
-  set({ isSendingMessage: true, error: null, abortController: nextAbortController })
+  set({
+    isSendingMessage: true,
+    error: null,
+    providerStatusError: null,
+    abortController: nextAbortController,
+  })
 
   const userMessage = createUserMessage(message, fileAttachments, contexts, messageId)
   const streamingMessage = createStreamingMessage()
@@ -1060,6 +1065,7 @@ const initialState = {
   isRevertingCheckpoint: false,
   isAborting: false,
   error: null as string | null,
+  providerStatusError: null as string | null,
   saveError: null as string | null,
   checkpointError: null as string | null,
   workflowId: null as string | null,
@@ -2217,6 +2223,7 @@ export const useCopilotStore = create<CopilotStore>()(
 
     // Utilities
     clearError: () => set({ error: null }),
+    clearProviderStatusError: () => set({ providerStatusError: null }),
     clearSaveError: () => set({ saveError: null }),
     clearCheckpointError: () => set({ checkpointError: null }),
     cleanup: () => {
@@ -2333,11 +2340,14 @@ export const useCopilotStore = create<CopilotStore>()(
 
     setSelectedModel: async (model) => {
       const normalizedModel = normalizeSelectedModelKey(model, get().availableModels)
-      set({ selectedModel: normalizedModel as CopilotStore['selectedModel'] })
+      set({
+        selectedModel: normalizedModel as CopilotStore['selectedModel'],
+        providerStatusError: null,
+      })
     },
     setAgentPrefetch: (prefetch) => set({ agentPrefetch: prefetch }),
     loadAvailableModels: async () => {
-      set({ isLoadingModels: true })
+      set({ isLoadingModels: true, providerStatusError: null })
       try {
         const response = await fetch(COPILOT_MODELS_API_PATH, { method: 'GET' })
         if (!response.ok) {
@@ -2376,6 +2386,7 @@ export const useCopilotStore = create<CopilotStore>()(
           })
 
         const { selectedModel } = get()
+        const { provider: previouslySelectedProvider } = parseModelKey(selectedModel)
         const normalizedSelectedModel = normalizeSelectedModelKey(selectedModel, normalizedModels)
         const selectedModelExists = normalizedModels.some(
           (model) => model.id === normalizedSelectedModel
@@ -2394,10 +2405,23 @@ export const useCopilotStore = create<CopilotStore>()(
           nextSelectedModel = opus45 ? opus45.id : normalizedModels[0].id
         }
 
+        let providerStatusError: string | null = null
+        if (previouslySelectedProvider && normalizedModels.length > 0) {
+          const hasProvider = normalizedModels.some(
+            (m) =>
+              m.provider === previouslySelectedProvider ||
+              m.id.startsWith(`${previouslySelectedProvider}/`)
+          )
+          if (!hasProvider) {
+            providerStatusError = `Selected provider "${previouslySelectedProvider}" is unavailable in this local environment. Choose another model.`
+          }
+        }
+
         set({
           availableModels: normalizedModels,
           selectedModel: nextSelectedModel as CopilotStore['selectedModel'],
           isLoadingModels: false,
+          providerStatusError,
         })
       } catch (error) {
         logger.warn('[Copilot] Failed to load available models', {

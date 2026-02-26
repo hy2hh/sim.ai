@@ -139,6 +139,8 @@ export interface CopilotState {
   suppressAbortContinueOption?: boolean
 
   error: string | null
+  /** Provider availability error shown near the model selector/tab */
+  providerStatusError: string | null
   saveError: string | null
   checkpointError: string | null
 
@@ -223,6 +225,7 @@ export interface CopilotActions {
 
   clearMessages: () => void
   clearError: () => void
+  clearProviderStatusError: () => void
   clearSaveError: () => void
   clearCheckpointError: () => void
   cleanup: () => void

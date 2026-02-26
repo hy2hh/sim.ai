@@ -9,6 +9,14 @@ import { buildConversationHistory } from '@/lib/copilot/chat-context'
 import { resolveOrCreateChat } from '@/lib/copilot/chat-lifecycle'
 import { buildCopilotRequestPayload } from '@/lib/copilot/chat-payload'
 import { SIM_AGENT_API_URL } from '@/lib/copilot/constants'
+
+/** When SIM_AGENT_API_URL points to a local server, the agent handles tool execution
+ *  internally and emits tool_result SSE events itself. Setting autoExecuteTools: false
+ *  prevents the orchestrator from double-executing those tools. */
+const IS_LOCAL_AGENT =
+  SIM_AGENT_API_URL.includes('localhost') ||
+  SIM_AGENT_API_URL.includes('127.0.0.1') ||
+  SIM_AGENT_API_URL.includes('0.0.0.0')
 import { COPILOT_REQUEST_MODES } from '@/lib/copilot/models'
 import { orchestrateCopilotStream } from '@/lib/copilot/orchestrator'
 import {
@@ -372,8 +380,8 @@ export async function POST(req: NextRequest) {
               userId: authenticatedUserId,
               workflowId,
               chatId: actualChatId,
-              autoExecuteTools: true,
-              interactive: true,
+              autoExecuteTools: !IS_LOCAL_AGENT,
+              interactive: !IS_LOCAL_AGENT,
               onEvent: async (event) => {
                 await pushEvent(event)
               },
@@ -430,8 +438,8 @@ export async function POST(req: NextRequest) {
       userId: authenticatedUserId,
       workflowId,
       chatId: actualChatId,
-      autoExecuteTools: true,
-      interactive: true,
+      autoExecuteTools: !IS_LOCAL_AGENT,
+      interactive: !IS_LOCAL_AGENT,
     })
 
     const responseData = {

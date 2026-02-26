@@ -132,6 +132,7 @@ const UserInput = forwardRef<UserInputRef, UserInputProps>(
       workflowIdOverride !== undefined ? workflowIdOverride : copilotStore.workflowId
     const selectedModel =
       selectedModelOverride !== undefined ? selectedModelOverride : copilotStore.selectedModel
+    const providerStatusError = copilotStore.providerStatusError
     const setSelectedModel = onModelChangeOverride || copilotStore.setSelectedModel
 
     const [internalMessage, setInternalMessage] = useState('')
@@ -864,6 +865,7 @@ const UserInput = forwardRef<UserInputRef, UserInputProps>(
             onModeChange={onModeChange}
             selectedModel={selectedModel}
             onModelSelect={handleModelSelect}
+            providerStatusError={providerStatusError}
             isNearTop={isNearTop}
             disabled={disabled}
             hideModeSelector={hideModeSelector}
@@ -875,6 +877,9 @@ const UserInput = forwardRef<UserInputRef, UserInputProps>(
             onAbort={handleAbort}
             onFileSelect={fileAttachments.handleFileSelect}
           />
+          {providerStatusError && (
+            <p className='mt-1 text-[11px] text-[var(--text-error)]'>{providerStatusError}</p>
+          )}
 
           {/* Hidden File Input - enabled during streaming so users can prepare images for the next message */}
           <input

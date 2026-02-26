@@ -1,0 +1,447 @@
+{
+  "version": "1.0",
+  "exportedAt": "2026-02-26T00:00:00.000Z",
+  "state": {
+    "blocks": {
+      "slack-trigger": {
+        "id": "slack-trigger",
+        "type": "slack",
+        "name": "Slack Trigger",
+        "position": { "x": 0, "y": 300 },
+        "subBlocks": {
+          "operation": {
+            "id": "operation",
+            "type": "dropdown",
+            "value": "send"
+          },
+          "authMethod": {
+            "id": "authMethod",
+            "type": "dropdown",
+            "value": "oauth"
+          },
+          "webhookUrlDisplay": {
+            "id": "webhookUrlDisplay",
+            "type": "short-input",
+            "value": null
+          },
+          "signingSecret": {
+            "id": "signingSecret",
+            "type": "short-input",
+            "value": null
+          },
+          "triggerSave": {
+            "id": "triggerSave",
+            "type": "trigger-save",
+            "value": null
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "triggerMode": true,
+        "horizontalHandles": true,
+        "advancedMode": false,
+        "height": 0,
+        "data": {}
+      },
+      "intent-router": {
+        "id": "intent-router",
+        "type": "agent",
+        "name": "Intent Router",
+        "position": { "x": 450, "y": 300 },
+        "subBlocks": {
+          "messages": {
+            "id": "messages",
+            "type": "messages-input",
+            "value": [
+              {
+                "role": "system",
+                "content": "You are an intent classifier for a Slack AI assistant. Analyze the user's request and return ONLY valid JSON.\n\nAvailable services:\n- jira: Issue tracking, project management, bug reports, sprint status\n- confluence: Documentation, wiki pages, knowledge base, guides\n- github: Code repositories, PRs, issues, branches, commits\n- slack: Channel history, user info, recent messages\n- general: General questions that don't require external data\n\nReturn exactly this JSON structure:\n{\"intent\": \"<one of: jira|confluence|github|slack|general>\", \"query\": \"<optimized search query for the service, empty string for general>\", \"reasoning\": \"<brief explanation under 30 words>\"}\n\nNote: Ignore the Slack mention prefix (e.g., <@U...>) in the user's message."
+              },
+              {
+                "role": "user",
+                "content": "<slack-trigger.event.text>"
+              }
+            ]
+          },
+          "model": {
+            "id": "model",
+            "type": "combobox",
+            "value": "claude-haiku-4-5-20251001"
+          },
+          "temperature": {
+            "id": "temperature",
+            "type": "slider",
+            "value": 0.3
+          },
+          "tools": {
+            "id": "tools",
+            "type": "tool-input",
+            "value": []
+          },
+          "responseFormat": {
+            "id": "responseFormat",
+            "type": "code",
+            "value": "{\n  \"name\": \"intent_classification\",\n  \"description\": \"Classify user intent and generate search query\",\n  \"strict\": true,\n  \"schema\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"intent\": {\n        \"type\": \"string\",\n        \"description\": \"The service to use for this request\",\n        \"enum\": [\"jira\", \"confluence\", \"github\", \"slack\", \"general\"]\n      },\n      \"query\": {\n        \"type\": \"string\",\n        \"description\": \"Optimized search query for the selected service, empty string for general\"\n      },\n      \"reasoning\": {\n        \"type\": \"string\",\n        \"description\": \"Brief explanation of the intent classification\"\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\"intent\", \"query\", \"reasoning\"]\n  }\n}"
+          },
+          "memoryType": {
+            "id": "memoryType",
+            "type": "dropdown",
+            "value": "none"
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": false,
+        "advancedMode": false,
+        "height": 0,
+        "data": {}
+      },
+      "intent-condition": {
+        "id": "intent-condition",
+        "type": "condition",
+        "name": "Intent Condition",
+        "position": { "x": 900, "y": 300 },
+        "subBlocks": {
+          "conditions": {
+            "id": "conditions",
+            "type": "condition-input",
+            "value": "[{\"id\":\"cond1\",\"title\":\"if\",\"value\":\"intent === \\\"jira\\\"\"},{\"id\":\"cond2\",\"title\":\"else if\",\"value\":\"intent === \\\"confluence\\\"\"},{\"id\":\"cond3\",\"title\":\"else if\",\"value\":\"intent === \\\"github\\\"\"},{\"id\":\"cond4\",\"title\":\"else if\",\"value\":\"intent === \\\"slack\\\"\"},{\"id\":\"else1\",\"title\":\"else\",\"value\":\"\"}]"
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": false,
+        "advancedMode": false,
+        "height": 0,
+        "data": {}
+      },
+      "jira-search": {
+        "id": "jira-search",
+        "type": "jira",
+        "name": "Jira Search",
+        "position": { "x": 1350, "y": 0 },
+        "subBlocks": {
+          "operation": {
+            "id": "operation",
+            "type": "dropdown",
+            "value": "search"
+          },
+          "domain": {
+            "id": "domain",
+            "type": "short-input",
+            "value": null
+          },
+          "credential": {
+            "id": "credential",
+            "type": "oauth-input",
+            "value": null
+          },
+          "jql": {
+            "id": "jql",
+            "type": "long-input",
+            "value": "<intent-router.query> ORDER BY updated DESC"
+          },
+          "maxResults": {
+            "id": "maxResults",
+            "type": "short-input",
+            "value": "5"
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": false,
+        "advancedMode": false,
+        "height": 0,
+        "data": {}
+      },
+      "confluence-search": {
+        "id": "confluence-search",
+        "type": "confluence",
+        "name": "Confluence Search",
+        "position": { "x": 1350, "y": 175 },
+        "subBlocks": {
+          "operation": {
+            "id": "operation",
+            "type": "dropdown",
+            "value": "search"
+          },
+          "domain": {
+            "id": "domain",
+            "type": "short-input",
+            "value": null
+          },
+          "credential": {
+            "id": "credential",
+            "type": "oauth-input",
+            "value": null
+          },
+          "query": {
+            "id": "query",
+            "type": "short-input",
+            "value": "<intent-router.query>"
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": false,
+        "advancedMode": false,
+        "height": 0,
+        "data": {}
+      },
+      "github-search": {
+        "id": "github-search",
+        "type": "github",
+        "name": "GitHub Search",
+        "position": { "x": 1350, "y": 350 },
+        "subBlocks": {
+          "operation": {
+            "id": "operation",
+            "type": "dropdown",
+            "value": "github_list_issues"
+          },
+          "token": {
+            "id": "token",
+            "type": "short-input",
+            "value": null
+          },
+          "owner": {
+            "id": "owner",
+            "type": "short-input",
+            "value": null
+          },
+          "repo": {
+            "id": "repo",
+            "type": "short-input",
+            "value": null
+          },
+          "state": {
+            "id": "state",
+            "type": "dropdown",
+            "value": "open"
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": false,
+        "advancedMode": false,
+        "height": 0,
+        "data": {}
+      },
+      "slack-read": {
+        "id": "slack-read",
+        "type": "slack",
+        "name": "Slack Read",
+        "position": { "x": 1350, "y": 525 },
+        "subBlocks": {
+          "operation": {
+            "id": "operation",
+            "type": "dropdown",
+            "value": "read"
+          },
+          "authMethod": {
+            "id": "authMethod",
+            "type": "dropdown",
+            "value": "oauth"
+          },
+          "credential": {
+            "id": "credential",
+            "type": "oauth-input",
+            "value": null
+          },
+          "channel": {
+            "id": "channel",
+            "type": "channel-selector",
+            "value": "<slack-trigger.event.channel>"
+          },
+          "limit": {
+            "id": "limit",
+            "type": "short-input",
+            "value": "10"
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": false,
+        "advancedMode": false,
+        "height": 0,
+        "data": {}
+      },
+      "main-agent": {
+        "id": "main-agent",
+        "type": "agent",
+        "name": "Main Agent",
+        "position": { "x": 1800, "y": 300 },
+        "subBlocks": {
+          "messages": {
+            "id": "messages",
+            "type": "messages-input",
+            "value": [
+              {
+                "role": "system",
+                "content": "You are a helpful AI assistant integrated into Slack.\n\nGuidelines:\n- Be concise and direct (Slack-friendly formatting)\n- Use markdown that Slack supports: *bold*, _italic_, `code`, ```code blocks```\n- If you have tool results, synthesize them into a clear answer\n- If information is insufficient, say so clearly\n- Always respond in the same language as the user's question\n- Keep responses under 2000 characters unless detail is explicitly needed\n- Ignore the Slack mention prefix (e.g., <@U...>) in the user's message"
+              },
+              {
+                "role": "user",
+                "content": "User question: <slack-trigger.event.text>\n\n--- Context from <intent-router.intent> service ---\n<jira-search.issues><confluence-search.results><github-search.issues><slack-read.messages>\n--- End Context ---\n\nPlease answer the user's question based on the context above. If no context is provided, answer from general knowledge."
+              }
+            ]
+          },
+          "model": {
+            "id": "model",
+            "type": "combobox",
+            "value": "claude-sonnet-4-6"
+          },
+          "temperature": {
+            "id": "temperature",
+            "type": "slider",
+            "value": 0.3
+          },
+          "tools": {
+            "id": "tools",
+            "type": "tool-input",
+            "value": []
+          },
+          "responseFormat": {
+            "id": "responseFormat",
+            "type": "code",
+            "value": null
+          },
+          "memoryType": {
+            "id": "memoryType",
+            "type": "dropdown",
+            "value": "none"
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": false,
+        "advancedMode": false,
+        "height": 0,
+        "data": {}
+      },
+      "slack-reply": {
+        "id": "slack-reply",
+        "type": "slack",
+        "name": "Slack Reply",
+        "position": { "x": 2250, "y": 300 },
+        "subBlocks": {
+          "operation": {
+            "id": "operation",
+            "type": "dropdown",
+            "value": "send"
+          },
+          "authMethod": {
+            "id": "authMethod",
+            "type": "dropdown",
+            "value": "oauth"
+          },
+          "credential": {
+            "id": "credential",
+            "type": "oauth-input",
+            "value": null
+          },
+          "destinationType": {
+            "id": "destinationType",
+            "type": "dropdown",
+            "value": "channel"
+          },
+          "channel": {
+            "id": "channel",
+            "type": "channel-selector",
+            "value": "<slack-trigger.event.channel>"
+          },
+          "text": {
+            "id": "text",
+            "type": "long-input",
+            "value": "<main-agent.content>"
+          },
+          "threadTs": {
+            "id": "threadTs",
+            "type": "short-input",
+            "value": "<slack-trigger.event.timestamp>"
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": false,
+        "advancedMode": false,
+        "height": 0,
+        "data": {}
+      }
+    },
+    "edges": [
+      {
+        "id": "edge-trigger-to-router",
+        "source": "slack-trigger",
+        "target": "intent-router"
+      },
+      {
+        "id": "edge-router-to-condition",
+        "source": "intent-router",
+        "target": "intent-condition"
+      },
+      {
+        "id": "edge-condition-to-jira",
+        "source": "intent-condition",
+        "target": "jira-search",
+        "sourceHandle": "condition-cond1"
+      },
+      {
+        "id": "edge-condition-to-confluence",
+        "source": "intent-condition",
+        "target": "confluence-search",
+        "sourceHandle": "condition-cond2"
+      },
+      {
+        "id": "edge-condition-to-github",
+        "source": "intent-condition",
+        "target": "github-search",
+        "sourceHandle": "condition-cond3"
+      },
+      {
+        "id": "edge-condition-to-slack-read",
+        "source": "intent-condition",
+        "target": "slack-read",
+        "sourceHandle": "condition-cond4"
+      },
+      {
+        "id": "edge-condition-to-main-agent",
+        "source": "intent-condition",
+        "target": "main-agent",
+        "sourceHandle": "condition-else1"
+      },
+      {
+        "id": "edge-jira-to-main-agent",
+        "source": "jira-search",
+        "target": "main-agent"
+      },
+      {
+        "id": "edge-confluence-to-main-agent",
+        "source": "confluence-search",
+        "target": "main-agent"
+      },
+      {
+        "id": "edge-github-to-main-agent",
+        "source": "github-search",
+        "target": "main-agent"
+      },
+      {
+        "id": "edge-slack-read-to-main-agent",
+        "source": "slack-read",
+        "target": "main-agent"
+      },
+      {
+        "id": "edge-main-agent-to-reply",
+        "source": "main-agent",
+        "target": "slack-reply"
+      }
+    ],
+    "loops": {},
+    "parallels": {},
+    "metadata": {
+      "name": "Slack AI Agent",
+      "description": "Slack @mention 기반 AI 에이전트. Jira, Confluence, GitHub, Slack을 자동으로 검색하여 스레드로 답변합니다.",
+      "color": "#611f69"
+    }
+  }
+}

@@ -11,6 +11,7 @@ interface BottomControlsProps {
   onModeChange?: (mode: 'ask' | 'build' | 'plan') => void
   selectedModel: string
   onModelSelect: (model: string) => void
+  providerStatusError?: string | null
   isNearTop: boolean
   disabled: boolean
   hideModeSelector: boolean
@@ -32,6 +33,7 @@ export function BottomControls({
   onModeChange,
   selectedModel,
   onModelSelect,
+  providerStatusError,
   isNearTop,
   disabled,
   hideModeSelector,
@@ -60,6 +62,7 @@ export function BottomControls({
           selectedModel={selectedModel}
           isNearTop={isNearTop}
           onModelSelect={onModelSelect}
+          errorMessage={providerStatusError}
         />
       </div>
 
