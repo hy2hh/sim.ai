@@ -678,8 +678,8 @@ async function runClaudeCode(
     'text',
     '--model',
     toClaudeCliModel(model),
-    '--permission-mode',
-    'bypassPermissions',
+    '--tools',
+    '',
   ]
   return runCommandWithTimeout('claude', args, timeoutMs)
 }
