@@ -499,6 +499,9 @@ function runCommandWithTimeout(
     let stderr = ''
     const timeout = setTimeout(() => {
       child.kill('SIGTERM')
+      setTimeout(() => {
+        child.kill('SIGKILL')
+      }, 3000)
     }, timeoutMs)
 
     child.stdout.on('data', (chunk: Buffer | string) => {
@@ -676,7 +679,7 @@ async function runClaudeCode(
     '--model',
     toClaudeCliModel(model),
     '--permission-mode',
-    'default',
+    'bypassPermissions',
   ]
   return runCommandWithTimeout('claude', args, timeoutMs)
 }
