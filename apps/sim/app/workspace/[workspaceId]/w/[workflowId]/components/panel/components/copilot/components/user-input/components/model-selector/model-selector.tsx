@@ -66,6 +66,8 @@ export function ModelSelector({
       value: model.id,
       label: model.friendlyName || model.id,
       provider: model.provider,
+      available: model.available ?? true,
+      unavailableReason: model.unavailableReason,
     }))
   }, [availableModels])
 
@@ -113,7 +115,8 @@ export function ModelSelector({
     return <IconComponent className='h-3.5 w-3.5' />
   }
 
-  const handleSelect = (modelValue: string) => {
+  const handleSelect = (modelValue: string, isAvailable: boolean) => {
+    if (!isAvailable) return
     onModelSelect(modelValue)
     setOpen(false)
   }
@@ -189,7 +192,9 @@ export function ModelSelector({
               <PopoverItem
                 key={option.value}
                 active={selectedModel === option.value}
-                onClick={() => handleSelect(option.value)}
+                disabled={!option.available}
+                title={option.available ? undefined : option.unavailableReason}
+                onClick={() => handleSelect(option.value, option.available)}
               >
                 {getModelIconComponent(option.value)}
                 <span>{option.label}</span>

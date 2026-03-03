@@ -8,7 +8,7 @@ import type {
  * A content block used in copilot messages and during streaming.
  * Uses a literal type union for `type` to stay compatible with CopilotMessage.
  */
-export type ContentBlockType = 'text' | 'thinking' | 'tool_call' | 'contexts'
+export type ContentBlockType = 'text' | 'thinking' | 'tool_call' | 'contexts' | 'tip'
 
 export interface ClientContentBlock {
   type: ContentBlockType

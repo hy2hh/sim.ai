@@ -251,6 +251,16 @@ const CopilotMessage: FC<CopilotMessageProps> = memo(
             </div>
           )
         }
+        if (block.type === 'tip') {
+          if (!isActivelyStreaming) return null
+          const blockKey = `tip-${index}-${block.timestamp || index}`
+          return (
+            <div key={blockKey} className='font-season text-sm'>
+              <span className='font-[470] text-[var(--text-tertiary)]'>Tip</span>
+              <span className='ml-1 text-[12px] text-[var(--text-muted)]'>· {block.content}</span>
+            </div>
+          )
+        }
         if (block.type === 'tool_call' && block.toolCall) {
           const blockKey = `tool-${block.toolCall.id}`
 
@@ -416,7 +426,7 @@ const CopilotMessage: FC<CopilotMessageProps> = memo(
             {/* Content blocks in chronological order */}
             {memoizedContentBlocks || (isStreaming && <div className='min-h-0' />)}
 
-            {isStreaming && <StreamingIndicator />}
+            {isStreaming && !memoizedContentBlocks && <StreamingIndicator />}
 
             {message.errorType === 'usage_limit' && (
               <div className='flex gap-1.5'>

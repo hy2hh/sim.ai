@@ -948,5 +948,32 @@ export const sseHandlers: Record<string, SSEHandler> = {
     finalizeThinkingBlock(context)
     updateStreamingMessage(set, context)
   },
+  agent_routing: (data, context, _get, set) => {
+    const eventData = asRecord(data.data)
+    const resolvedModel = typeof eventData.model === 'string' ? eventData.model : ''
+    const selectedModel = typeof eventData.selectedModel === 'string' ? eventData.selectedModel : ''
+
+    if (!resolvedModel || !selectedModel || resolvedModel === selectedModel) return
+
+    const getFriendlyName = (modelId: string): string => {
+      const lower = modelId.toLowerCase()
+      if (lower.includes('haiku')) return 'Haiku'
+      if (lower.includes('sonnet')) return 'Sonnet'
+      if (lower.includes('opus')) return 'Opus'
+      if (lower.includes('flash')) return 'Flash'
+      if (lower.includes('pro')) return 'Pro'
+      return modelId
+    }
+
+    const resolvedName = getFriendlyName(resolvedModel)
+    const selectedName = getFriendlyName(selectedModel)
+
+    context.contentBlocks.push({
+      type: 'tip',
+      content: `간단한 요청으로 분류되어 ${resolvedName}을 사용합니다. ${selectedName} 이상이 필요한 복잡한 작업에는 선택하신 모델이 사용됩니다.`,
+      timestamp: Date.now(),
+    })
+    updateStreamingMessage(set, context)
+  },
   default: () => {},
 }

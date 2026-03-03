@@ -14,4 +14,8 @@ export interface AvailableModel {
   id: string
   friendlyName: string
   provider: string
+  /** Whether the required local CLI is installed on this machine */
+  available: boolean
+  /** Human-readable reason shown when available is false */
+  unavailableReason?: string
 }

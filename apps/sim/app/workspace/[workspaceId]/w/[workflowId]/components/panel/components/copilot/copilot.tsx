@@ -115,6 +115,8 @@ export const Copilot = forwardRef<CopilotRef, CopilotProps>(({ panelWidth }, ref
     loadAvailableModels,
     loadAutoAllowedTools,
     resumeActiveStream,
+    hasAvailableModels,
+    isLoadingModels,
   } = useCopilotStore()
 
   // Initialize copilot
@@ -439,7 +441,7 @@ export const Copilot = forwardRef<CopilotRef, CopilotProps>(({ panelWidth }, ref
                     ref={userInputRef}
                     onSubmit={handleSubmit}
                     onAbort={handleAbort}
-                    disabled={!activeWorkflowId}
+                    disabled={!activeWorkflowId || (!isLoadingModels && !hasAvailableModels)}
                     isLoading={isSendingMessage}
                     isAborting={isAborting}
                     mode={mode}
@@ -542,7 +544,7 @@ export const Copilot = forwardRef<CopilotRef, CopilotProps>(({ panelWidth }, ref
                     ref={userInputRef}
                     onSubmit={handleSubmit}
                     onAbort={handleAbort}
-                    disabled={!activeWorkflowId}
+                    disabled={!activeWorkflowId || (!isLoadingModels && !hasAvailableModels)}
                     isLoading={isSendingMessage}
                     isAborting={isAborting}
                     mode={mode}

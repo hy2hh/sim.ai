@@ -14,6 +14,8 @@ export type SSEEventType =
   | 'done'
   | 'error'
   | 'start'
+  /** Local CLI copilot only: emitted after intent classification */
+  | 'agent_routing'
 
 export interface SSEEvent {
   type: SSEEventType

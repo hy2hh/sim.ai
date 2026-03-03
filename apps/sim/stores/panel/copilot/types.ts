@@ -141,6 +141,8 @@ export interface CopilotState {
   error: string | null
   /** Provider availability error shown near the model selector/tab */
   providerStatusError: string | null
+  /** False when all models are unavailable (no local CLI installed) */
+  hasAvailableModels: boolean
   saveError: string | null
   checkpointError: string | null
 

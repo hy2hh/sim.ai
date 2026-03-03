@@ -1066,6 +1066,7 @@ const initialState = {
   isAborting: false,
   error: null as string | null,
   providerStatusError: null as string | null,
+  hasAvailableModels: true,
   saveError: null as string | null,
   checkpointError: null as string | null,
   workflowId: null as string | null,
@@ -2377,6 +2378,8 @@ export const useCopilotStore = create<CopilotStore>()(
               id: compositeId,
               friendlyName: model.friendlyName || model.id,
               provider,
+              available: model.available ?? true,
+              unavailableReason: model.unavailableReason,
             }
           })
           .filter((model) => {
@@ -2392,28 +2395,37 @@ export const useCopilotStore = create<CopilotStore>()(
           (model) => model.id === normalizedSelectedModel
         )
 
-        // Pick the best default: prefer claude-opus-4-5 with provider priority:
+        // Pick the best default: prefer claude-opus-4-5 (available first) with provider priority:
         // direct anthropic > bedrock > azure-anthropic > any other.
         let nextSelectedModel = normalizedSelectedModel
         if (!selectedModelExists && normalizedModels.length > 0) {
+          const availableModels = normalizedModels.filter((m) => m.available !== false)
+          const candidates = availableModels.length > 0 ? availableModels : normalizedModels
+
           let opus45: AvailableModel | undefined
           for (const prov of MODEL_PROVIDER_PRIORITY) {
-            opus45 = normalizedModels.find((m) => m.id === `${prov}/claude-opus-4-5`)
+            opus45 = candidates.find((m) => m.id === `${prov}/claude-opus-4-5`)
             if (opus45) break
           }
-          if (!opus45) opus45 = normalizedModels.find((m) => m.id.endsWith('/claude-opus-4-5'))
-          nextSelectedModel = opus45 ? opus45.id : normalizedModels[0].id
+          if (!opus45) opus45 = candidates.find((m) => m.id.endsWith('/claude-opus-4-5'))
+          nextSelectedModel = opus45 ? opus45.id : candidates[0].id
         }
 
+        const hasAvailableModels = normalizedModels.some((m) => m.available !== false)
+
         let providerStatusError: string | null = null
-        if (previouslySelectedProvider && normalizedModels.length > 0) {
-          const hasProvider = normalizedModels.some(
+        if (!hasAvailableModels && normalizedModels.length > 0) {
+          providerStatusError =
+            'Copilot을 사용하려면 Claude Code, Gemini CLI, Codex 중 하나를 설치해주세요.'
+        } else if (previouslySelectedProvider && normalizedModels.length > 0) {
+          const providerHasAvailableModel = normalizedModels.some(
             (m) =>
-              m.provider === previouslySelectedProvider ||
-              m.id.startsWith(`${previouslySelectedProvider}/`)
+              m.available !== false &&
+              (m.provider === previouslySelectedProvider ||
+                m.id.startsWith(`${previouslySelectedProvider}/`))
           )
-          if (!hasProvider) {
-            providerStatusError = `Selected provider "${previouslySelectedProvider}" is unavailable in this local environment. Choose another model.`
+          if (!providerHasAvailableModel) {
+            providerStatusError = `선택한 프로바이더 "${previouslySelectedProvider}"를 사용할 수 없습니다. 다른 모델을 선택해주세요.`
           }
         }
 
@@ -2421,6 +2433,7 @@ export const useCopilotStore = create<CopilotStore>()(
           availableModels: normalizedModels,
           selectedModel: nextSelectedModel as CopilotStore['selectedModel'],
           isLoadingModels: false,
+          hasAvailableModels,
           providerStatusError,
         })
       } catch (error) {
