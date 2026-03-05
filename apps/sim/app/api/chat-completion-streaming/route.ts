@@ -1120,6 +1120,31 @@ function tryParseDecisionJson(candidate: string): AgentDecision | null {
   return null
 }
 
+/**
+ * Attempts to parse a JSON string by progressively trimming trailing characters.
+ * Handles cases where the model appends spurious characters (e.g., a stray `"`)
+ * after valid JSON, which breaks brace-counting extraction.
+ */
+function tryParseWithTrimming(raw: string): AgentDecision | null {
+  // Try parsing as-is first
+  const direct = tryParseDecisionJson(raw)
+  if (direct) {
+    return direct
+  }
+
+  // Progressively trim trailing non-whitespace characters (up to 5)
+  let candidate = raw.trimEnd()
+  for (let i = 0; i < 5 && candidate.length > 1; i++) {
+    candidate = candidate.slice(0, -1).trimEnd()
+    const result = tryParseDecisionJson(candidate)
+    if (result) {
+      return result
+    }
+  }
+
+  return null
+}
+
 function parseAgentDecision(raw: string): AgentDecision {
   const trimmed = raw.trim()
 
@@ -1177,6 +1202,18 @@ function parseAgentDecision(raw: string): AgentDecision {
 
     const foundAt = trimmed.indexOf(candidate, searchIdx)
     searchIdx = foundAt < 0 ? trimmed.length : foundAt + candidate.length
+  }
+
+  // Last resort: find tool_calls pattern directly and try JSON.parse with progressive trimming.
+  // Models sometimes output malformed JSON with trailing spurious characters (e.g., `]"}`),
+  // which breaks the brace-counting extractor's string mode tracking.
+  const toolCallsMatch = trimmed.match(/\{"type"\s*:\s*"tool_calls"/)
+  if (toolCallsMatch?.index !== undefined) {
+    const substr = trimmed.slice(toolCallsMatch.index)
+    const result = tryParseWithTrimming(substr)
+    if (result) {
+      return result
+    }
   }
 
   return { type: 'assistant', content: raw.trim() }
