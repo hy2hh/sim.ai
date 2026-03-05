@@ -9,6 +9,7 @@ import { buildConversationHistory } from '@/lib/copilot/chat-context'
 import { resolveOrCreateChat } from '@/lib/copilot/chat-lifecycle'
 import { buildCopilotRequestPayload } from '@/lib/copilot/chat-payload'
 import { SIM_AGENT_API_URL } from '@/lib/copilot/constants'
+import { LOCAL_CLI_PROVIDERS } from '@/lib/copilot/orchestrator'
 
 /** When SIM_AGENT_API_URL points to a local server, the agent handles tool execution
  *  internally and emits tool_result SSE events itself. Setting autoExecuteTools: false
@@ -377,12 +378,14 @@ export async function POST(req: NextRequest) {
           }
 
           try {
+            const isLocalCliProvider = LOCAL_CLI_PROVIDERS.has(provider ?? '')
+            const skipOrchestratorExec = IS_LOCAL_AGENT || isLocalCliProvider
             const result = await orchestrateCopilotStream(requestPayload, {
               userId: authenticatedUserId,
               workflowId,
               chatId: actualChatId,
-              autoExecuteTools: !IS_LOCAL_AGENT,
-              interactive: !IS_LOCAL_AGENT,
+              autoExecuteTools: !skipOrchestratorExec,
+              interactive: !skipOrchestratorExec,
               onEvent: async (event) => {
                 await pushEvent(event)
               },
@@ -435,12 +438,14 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    const isLocalCliProviderNonStream = LOCAL_CLI_PROVIDERS.has(provider ?? '')
+    const skipNonStream = IS_LOCAL_AGENT || isLocalCliProviderNonStream
     const nonStreamingResult = await orchestrateCopilotStream(requestPayload, {
       userId: authenticatedUserId,
       workflowId,
       chatId: actualChatId,
-      autoExecuteTools: !IS_LOCAL_AGENT,
-      interactive: !IS_LOCAL_AGENT,
+      autoExecuteTools: !skipNonStream,
+      interactive: !skipNonStream,
     })
 
     const responseData = {

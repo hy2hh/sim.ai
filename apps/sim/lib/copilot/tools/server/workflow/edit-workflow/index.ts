@@ -72,7 +72,13 @@ export const editWorkflowServerTool: BaseServerTool<EditWorkflowParams, unknown>
   name: 'edit_workflow',
   async execute(params: EditWorkflowParams, context?: { userId: string }): Promise<unknown> {
     const logger = createLogger('EditWorkflowServerTool')
-    const { operations, workflowId, currentUserWorkflow } = params
+    const { workflowId, currentUserWorkflow } = params
+    let operations = params.operations
+    if (typeof operations === 'string') {
+      try {
+        operations = JSON.parse(operations)
+      } catch {}
+    }
     if (!Array.isArray(operations) || operations.length === 0) {
       throw new Error('operations are required and must be an array')
     }

@@ -934,7 +934,15 @@ function normalizeToolArguments(
     normalizedArgs.workflowId = workflowId
   }
 
-  const operations = Array.isArray(args.operations) ? args.operations : null
+  let operations = Array.isArray(args.operations) ? args.operations : null
+  if (!operations && typeof args.operations === 'string') {
+    try {
+      const parsed = JSON.parse(args.operations)
+      if (Array.isArray(parsed)) {
+        operations = parsed
+      }
+    } catch {}
+  }
   if (!operations) {
     return normalizedArgs
   }

@@ -7,7 +7,7 @@ import { buildToolCallSummaries, createStreamingContext, runStreamLoop } from '.
 
 const logger = createLogger('CopilotOrchestrator')
 
-const LOCAL_CLI_PROVIDERS = new Set(['claude', 'anthropic', 'gemini', 'google', 'codex', 'openai'])
+export const LOCAL_CLI_PROVIDERS = new Set(['claude', 'anthropic', 'gemini', 'google', 'codex', 'openai'])
 
 /** Resolves the streaming endpoint URL.
  * If the request targets a local CLI provider, routes to the internal Next.js API.
