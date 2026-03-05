@@ -57,7 +57,9 @@ export type GetBlockOptionsResultType = z.infer<typeof GetBlockOptionsResult>
 export const GetBlockConfigInput = z.object({
   blockType: z.string(),
   operation: z.string().optional(),
-  trigger: z.boolean().optional(),
+  // Some models send trigger mode as a string alias (e.g. "slack_webhook", "trigger").
+  // Accept both and normalize inside the tool implementation.
+  trigger: z.union([z.boolean(), z.string()]).optional(),
 })
 export const GetBlockConfigResult = z.object({
   blockType: z.string(),

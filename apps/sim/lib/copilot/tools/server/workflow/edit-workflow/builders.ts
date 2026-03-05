@@ -420,13 +420,14 @@ export function createValidatedEdge(
 
   // Use normalized handle if available (e.g., 'if' -> 'condition-{uuid}')
   const finalSourceHandle = sourceValidation.normalizedHandle || sourceHandle
+  const finalTargetHandle = targetValidation.normalizedHandle || targetHandle
 
   modifiedState.edges.push({
     id: crypto.randomUUID(),
     source: sourceBlockId,
     sourceHandle: finalSourceHandle,
     target: targetBlockId,
-    targetHandle,
+    targetHandle: finalTargetHandle,
     type: 'default',
   })
   return true
