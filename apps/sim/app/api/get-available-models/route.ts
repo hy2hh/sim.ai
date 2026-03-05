@@ -1,5 +1,5 @@
-import { type NextRequest, NextResponse } from 'next/server'
 import { spawnSync } from 'node:child_process'
+import { type NextRequest, NextResponse } from 'next/server'
 import { env } from '@/lib/core/config/env'
 
 interface ModelEntry {

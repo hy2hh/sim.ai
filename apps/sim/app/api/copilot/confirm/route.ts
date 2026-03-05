@@ -2,6 +2,7 @@ import { createLogger } from '@sim/logger'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { REDIS_TOOL_CALL_PREFIX, REDIS_TOOL_CALL_TTL_SECONDS } from '@/lib/copilot/constants'
+import { setLocalToolDecision } from '@/lib/copilot/orchestrator/local-tool-decisions'
 import {
   authenticateCopilotRequestSessionOnly,
   createBadRequestResponse,
@@ -76,8 +77,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { toolCallId, status, message } = ConfirmationSchema.parse(body)
 
-    // Update the tool call status in Redis
+    // Update the tool call status in Redis (for hosted/production provider)
     const updated = await updateToolCallStatus(toolCallId, status, message)
+
+    // Also update the in-memory store (for local CLI provider)
+    setLocalToolDecision(
+      toolCallId,
+      status as 'accepted' | 'rejected' | 'background' | 'success' | 'error',
+      message
+    )
 
     if (!updated) {
       logger.error(`[${tracker.requestId}] Failed to update tool call status`, {

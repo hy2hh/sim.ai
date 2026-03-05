@@ -7,6 +7,26 @@ import { buildToolCallSummaries, createStreamingContext, runStreamLoop } from '.
 
 const logger = createLogger('CopilotOrchestrator')
 
+const LOCAL_CLI_PROVIDERS = new Set(['claude', 'anthropic', 'gemini', 'google', 'codex', 'openai'])
+
+/** Resolves the streaming endpoint URL.
+ * If the request targets a local CLI provider, routes to the internal Next.js API.
+ * Otherwise falls back to the configured SIM_AGENT_API_URL. */
+function resolveStreamingUrl(requestPayload: Record<string, unknown>): string {
+  const provider = typeof requestPayload.provider === 'string' ? requestPayload.provider : ''
+  const isLocalProvider = LOCAL_CLI_PROVIDERS.has(provider)
+
+  if (isLocalProvider) {
+    const base =
+      env.INTERNAL_API_BASE_URL ||
+      (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_APP_URL) ||
+      'http://localhost:3000'
+    return `${base}/api/chat-completion-streaming`
+  }
+
+  return `${SIM_AGENT_API_URL}/api/chat-completion-streaming`
+}
+
 export interface OrchestrateStreamOptions extends OrchestratorOptions {
   userId: string
   workflowId: string
@@ -26,9 +46,12 @@ export async function orchestrateCopilotStream(
     messageId: typeof payloadMsgId === 'string' ? payloadMsgId : crypto.randomUUID(),
   })
 
+  const streamingUrl = resolveStreamingUrl(requestPayload)
+  logger.info('Resolved streaming URL', { url: streamingUrl, provider: requestPayload.provider })
+
   try {
     await runStreamLoop(
-      `${SIM_AGENT_API_URL}/api/chat-completion-streaming`,
+      streamingUrl,
       {
         method: 'POST',
         headers: {

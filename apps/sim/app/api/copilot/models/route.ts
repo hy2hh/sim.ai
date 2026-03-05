@@ -1,26 +1,65 @@
+import { spawnSync } from 'node:child_process'
 import { createLogger } from '@sim/logger'
 import { type NextRequest, NextResponse } from 'next/server'
-import { SIM_AGENT_API_URL } from '@/lib/copilot/constants'
 import { authenticateCopilotRequestSessionOnly } from '@/lib/copilot/request-helpers'
 import type { AvailableModel } from '@/lib/copilot/types'
-import { env } from '@/lib/core/config/env'
 
 const logger = createLogger('CopilotModelsAPI')
 
-interface RawAvailableModel {
+interface ModelEntry {
   id: string
-  friendlyName?: string
-  displayName?: string
-  provider?: string
+  friendlyName: string
+  provider: string
+  requiredCli: string
 }
 
-function isRawAvailableModel(item: unknown): item is RawAvailableModel {
-  return (
-    typeof item === 'object' &&
-    item !== null &&
-    'id' in item &&
-    typeof (item as { id: unknown }).id === 'string'
-  )
+const MODEL_REGISTRY: ModelEntry[] = [
+  // Claude (requires `claude` CLI)
+  {
+    id: 'claude-opus-4-6',
+    friendlyName: 'Claude Opus 4.6',
+    provider: 'anthropic',
+    requiredCli: 'claude',
+  },
+  {
+    id: 'claude-sonnet-4-6',
+    friendlyName: 'Claude Sonnet 4.6',
+    provider: 'anthropic',
+    requiredCli: 'claude',
+  },
+  {
+    id: 'claude-haiku-4-5',
+    friendlyName: 'Claude Haiku 4.5',
+    provider: 'anthropic',
+    requiredCli: 'claude',
+  },
+  // Gemini (requires `gemini` CLI)
+  { id: 'gemini-3-pro', friendlyName: 'Gemini 3 Pro', provider: 'google', requiredCli: 'gemini' },
+  {
+    id: 'gemini-3-flash',
+    friendlyName: 'Gemini 3 Flash',
+    provider: 'google',
+    requiredCli: 'gemini',
+  },
+  {
+    id: 'gemini-2.5-pro',
+    friendlyName: 'Gemini 2.5 Pro',
+    provider: 'google',
+    requiredCli: 'gemini',
+  },
+  {
+    id: 'gemini-2.5-flash',
+    friendlyName: 'Gemini 2.5 Flash',
+    provider: 'google',
+    requiredCli: 'gemini',
+  },
+  // Codex (requires `codex` CLI)
+  { id: 'gpt-5.3-codex', friendlyName: 'GPT-5.3 Codex', provider: 'openai', requiredCli: 'codex' },
+  { id: 'gpt-5-codex', friendlyName: 'GPT-5 Codex', provider: 'openai', requiredCli: 'codex' },
+]
+
+function hasCommand(cmd: string): boolean {
+  return spawnSync('which', [cmd], { encoding: 'utf8' }).status === 0
 }
 
 export async function GET(_req: NextRequest) {
@@ -29,55 +68,35 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  }
-  if (env.COPILOT_API_KEY) {
-    headers['x-api-key'] = env.COPILOT_API_KEY
-  }
-
   try {
-    const response = await fetch(`${SIM_AGENT_API_URL}/api/get-available-models`, {
-      method: 'GET',
-      headers,
-      cache: 'no-store',
-    })
-
-    const payload = await response.json().catch(() => ({}))
-    if (!response.ok) {
-      logger.warn('Failed to fetch available models from copilot backend', {
-        status: response.status,
-      })
-      return NextResponse.json(
-        {
-          success: false,
-          error: payload?.error || 'Failed to fetch available models',
-          models: [],
-        },
-        { status: response.status }
-      )
+    const cliCache = new Map<string, boolean>()
+    const isCliAvailable = (cli: string): boolean => {
+      if (!cliCache.has(cli)) {
+        cliCache.set(cli, hasCommand(cli))
+      }
+      return cliCache.get(cli)!
     }
 
-    const rawModels = Array.isArray(payload?.models) ? payload.models : []
-    const models: AvailableModel[] = rawModels
-      .filter((item: unknown): item is RawAvailableModel => isRawAvailableModel(item))
-      .map((item: RawAvailableModel) => ({
-        id: item.id,
-        friendlyName: item.friendlyName || item.displayName || item.id,
-        provider: item.provider || 'unknown',
-      }))
+    const models: AvailableModel[] = MODEL_REGISTRY.map(({ requiredCli, ...model }) => ({
+      ...model,
+      available: isCliAvailable(requiredCli),
+      unavailableReason: isCliAvailable(requiredCli)
+        ? undefined
+        : `${requiredCli} CLI가 설치되어 있지 않습니다`,
+    }))
+
+    logger.info('Local CLI model availability checked', {
+      total: models.length,
+      available: models.filter((m) => m.available).length,
+    })
 
     return NextResponse.json({ success: true, models })
   } catch (error) {
-    logger.error('Error fetching available models', {
+    logger.error('Error checking local CLI availability', {
       error: error instanceof Error ? error.message : String(error),
     })
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch available models',
-        models: [],
-      },
+      { success: false, error: 'Failed to check available models', models: [] },
       { status: 500 }
     )
   }
