@@ -17,6 +17,7 @@ const IS_LOCAL_AGENT =
   SIM_AGENT_API_URL.includes('localhost') ||
   SIM_AGENT_API_URL.includes('127.0.0.1') ||
   SIM_AGENT_API_URL.includes('0.0.0.0')
+
 import { COPILOT_REQUEST_MODES } from '@/lib/copilot/models'
 import { orchestrateCopilotStream } from '@/lib/copilot/orchestrator'
 import {

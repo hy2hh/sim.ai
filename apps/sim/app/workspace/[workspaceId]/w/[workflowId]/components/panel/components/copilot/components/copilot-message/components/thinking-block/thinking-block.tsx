@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
-import { ChevronUp } from 'lucide-react'
+import { Brain, ChevronDown } from 'lucide-react'
 import { formatDuration } from '@/lib/core/utils/formatting'
 import { CopilotMarkdownRenderer } from '../markdown-renderer'
 
@@ -108,7 +108,7 @@ const SmoothThinkingText = memo(
     return (
       <div
         ref={textRef}
-        className='[&_*]:!text-[var(--text-muted)] [&_*]:!text-[12px] [&_*]:!leading-[1.4] [&_p]:!m-0 [&_p]:!mb-1 [&_h1]:!text-[12px] [&_h1]:!font-semibold [&_h1]:!m-0 [&_h1]:!mb-1 [&_h2]:!text-[12px] [&_h2]:!font-semibold [&_h2]:!m-0 [&_h2]:!mb-1 [&_h3]:!text-[12px] [&_h3]:!font-semibold [&_h3]:!m-0 [&_h3]:!mb-1 [&_code]:!text-[11px] [&_ul]:!pl-5 [&_ul]:!my-1 [&_ol]:!pl-6 [&_ol]:!my-1 [&_li]:!my-0.5 [&_li]:!py-0 font-season text-[12px] text-[var(--text-muted)]'
+        className='[&_*]:!text-[var(--text-secondary)] [&_*]:!text-[13px] [&_*]:!leading-[1.6] [&_p]:!m-0 [&_p]:!mb-1.5 [&_h1]:!text-[13px] [&_h1]:!font-semibold [&_h1]:!m-0 [&_h1]:!mb-1 [&_h2]:!text-[13px] [&_h2]:!font-semibold [&_h2]:!m-0 [&_h2]:!mb-1 [&_h3]:!text-[13px] [&_h3]:!font-semibold [&_h3]:!m-0 [&_h3]:!mb-1 [&_code]:!text-[12px] [&_code]:!font-mono [&_ul]:!pl-4 [&_ul]:!my-1 [&_ol]:!pl-5 [&_ol]:!my-1 [&_li]:!my-0.5 [&_li]:!py-0 font-season text-[13px] text-[var(--text-secondary)]'
       >
         <CopilotMarkdownRenderer content={displayedContent} />
       </div>
@@ -133,13 +133,13 @@ interface ThinkingBlockProps {
   hasFollowingContent?: boolean
   /** Custom label for the thinking block (e.g., "Thinking", "Exploring"). Defaults to "Thought" */
   label?: string
-  /** Whether special tags (plan, options) are present - triggers collapse */
+  /** Whether special tags (plan, options) are present */
   hasSpecialTags?: boolean
 }
 
 /**
  * Displays AI reasoning/thinking process with collapsible content and duration timer.
- * Auto-expands during streaming and collapses when complete.
+ * Cursor IDE style: left border accent, brain icon, always expanded by default.
  */
 export function ThinkingBlock({
   content,
@@ -150,7 +150,7 @@ export function ThinkingBlock({
 }: ThinkingBlockProps) {
   const cleanContent = useMemo(() => stripThinkingTags(content || ''), [content])
 
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(true)
   const [duration, setDuration] = useState(0)
   const [userHasScrolledAway, setUserHasScrolledAway] = useState(false)
   const userCollapsedRef = useRef<boolean>(false)
@@ -159,19 +159,12 @@ export function ThinkingBlock({
   const lastScrollTopRef = useRef(0)
   const programmaticScrollRef = useRef(false)
 
-  /** Auto-expands during streaming, auto-collapses when streaming ends or following content arrives */
+  /** Auto-expands when content arrives during streaming */
   useEffect(() => {
-    if (!isStreaming || hasFollowingContent || hasSpecialTags) {
-      setIsExpanded(false)
-      userCollapsedRef.current = false
-      setUserHasScrolledAway(false)
-      return
-    }
-
-    if (!userCollapsedRef.current && cleanContent && cleanContent.length > 0) {
+    if (isStreaming && !userCollapsedRef.current && cleanContent.length > 0) {
       setIsExpanded(true)
     }
-  }, [isStreaming, cleanContent, hasFollowingContent, hasSpecialTags])
+  }, [isStreaming, cleanContent])
 
   useEffect(() => {
     if (isStreaming && !hasFollowingContent) {
@@ -244,7 +237,6 @@ export function ThinkingBlock({
 
   const hasContent = cleanContent.length > 0
   const isThinkingDone = !isStreaming || hasFollowingContent || hasSpecialTags
-  // Round to nearest second (minimum 1s) to match original behavior
   const roundedMs = Math.max(1000, Math.round(duration / 1000) * 1000)
   const durationText = `${label} for ${formatDuration(roundedMs)}`
 
@@ -257,12 +249,16 @@ export function ThinkingBlock({
 
   if (!isThinkingDone) {
     return (
-      <div>
+      <div className='my-1'>
         <style>{`
           @keyframes thinking-shimmer {
             0% { background-position: 150% 0; }
             50% { background-position: 0% 0; }
             100% { background-position: -150% 0; }
+          }
+          @keyframes thinking-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
           }
         `}</style>
         <button
@@ -273,17 +269,24 @@ export function ThinkingBlock({
               return next
             })
           }}
-          className='group inline-flex items-center gap-1 text-left font-[470] font-season text-[var(--text-secondary)] text-sm transition-colors hover:text-[var(--text-primary)]'
+          className='group flex w-full items-center gap-1.5 text-left'
           type='button'
         >
-          <span className='relative inline-block'>
-            <span className='text-[var(--text-tertiary)]'>{streamingLabel}</span>
+          <Brain
+            className='h-3.5 w-3.5 flex-shrink-0 text-[var(--text-muted)]'
+            style={{ animation: 'thinking-pulse 2s ease-in-out infinite' }}
+            aria-hidden='true'
+          />
+          <span className='relative inline-block flex-1'>
+            <span className='font-[450] text-[13px] text-[var(--text-tertiary)]'>
+              {streamingLabel}
+            </span>
             <span
               aria-hidden='true'
               className='pointer-events-none absolute inset-0 select-none overflow-hidden'
             >
               <span
-                className='block text-transparent'
+                className='block text-[13px] text-transparent'
                 style={{
                   backgroundImage:
                     'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.85) 50%, rgba(255,255,255,0) 100%)',
@@ -300,65 +303,80 @@ export function ThinkingBlock({
             </span>
           </span>
           {hasContent && (
-            <ChevronUp
+            <ChevronDown
               className={clsx(
-                'h-3 w-3 transition-all group-hover:opacity-100',
-                isExpanded ? 'rotate-180 opacity-100' : 'rotate-90 opacity-0'
+                'h-3.5 w-3.5 flex-shrink-0 text-[var(--text-muted)] transition-transform duration-200 group-hover:text-[var(--text-secondary)]',
+                isExpanded ? 'rotate-180' : 'rotate-0'
               )}
               aria-hidden='true'
             />
           )}
         </button>
 
-        <div
-          ref={scrollContainerRef}
-          className={clsx(
-            'overflow-y-auto transition-all duration-150 ease-out',
-            isExpanded ? 'mt-1.5 max-h-[150px] opacity-100' : 'max-h-0 opacity-0'
-          )}
-        >
-          <SmoothThinkingText
-            content={cleanContent}
-            isStreaming={isStreaming && !hasFollowingContent}
-          />
-        </div>
+        {hasContent && (
+          <div
+            className={clsx(
+              'overflow-hidden transition-all duration-200 ease-out',
+              isExpanded ? 'mt-2 max-h-[260px] opacity-100' : 'max-h-0 opacity-0'
+            )}
+          >
+            <div
+              ref={scrollContainerRef}
+              className='max-h-[260px] overflow-y-auto border-[var(--border-subtle)] border-l-2 pl-3'
+            >
+              <SmoothThinkingText
+                content={cleanContent}
+                isStreaming={isStreaming && !hasFollowingContent}
+              />
+            </div>
+          </div>
+        )}
       </div>
     )
   }
 
   return (
-    <div>
+    <div className='my-1'>
       <button
         onClick={() => {
           setIsExpanded((v) => !v)
         }}
-        className='group inline-flex items-center gap-1 text-left font-[470] font-season text-[var(--text-secondary)] text-sm transition-colors hover:text-[var(--text-primary)]'
+        className='group flex w-full items-center gap-1.5 text-left'
         type='button'
         disabled={!hasContent}
       >
-        <span className='text-[var(--text-tertiary)]'>{durationText}</span>
+        <Brain className='h-3.5 w-3.5 flex-shrink-0 text-[var(--text-muted)]' aria-hidden='true' />
+        <span className='flex-1 text-[13px] text-[var(--text-muted)] transition-colors duration-150 group-hover:text-[var(--text-secondary)]'>
+          {durationText}
+        </span>
         {hasContent && (
-          <ChevronUp
+          <ChevronDown
             className={clsx(
-              'h-3 w-3 transition-all group-hover:opacity-100',
-              isExpanded ? 'rotate-180 opacity-100' : 'rotate-90 opacity-0'
+              'h-3.5 w-3.5 flex-shrink-0 text-[var(--text-muted)] transition-transform duration-200 group-hover:text-[var(--text-secondary)]',
+              isExpanded ? 'rotate-180' : 'rotate-0'
             )}
             aria-hidden='true'
           />
         )}
       </button>
 
-      <div
-        ref={scrollContainerRef}
-        className={clsx(
-          'overflow-y-auto transition-all duration-150 ease-out',
-          isExpanded ? 'mt-1.5 max-h-[150px] opacity-100' : 'max-h-0 opacity-0'
-        )}
-      >
-        <div className='[&_*]:!text-[var(--text-muted)] [&_*]:!text-[12px] [&_*]:!leading-[1.4] [&_p]:!m-0 [&_p]:!mb-1 [&_h1]:!text-[12px] [&_h1]:!font-semibold [&_h1]:!m-0 [&_h1]:!mb-1 [&_h2]:!text-[12px] [&_h2]:!font-semibold [&_h2]:!m-0 [&_h2]:!mb-1 [&_h3]:!text-[12px] [&_h3]:!font-semibold [&_h3]:!m-0 [&_h3]:!mb-1 [&_code]:!text-[11px] [&_ul]:!pl-5 [&_ul]:!my-1 [&_ol]:!pl-6 [&_ol]:!my-1 [&_li]:!my-0.5 [&_li]:!py-0 font-season text-[12px] text-[var(--text-muted)]'>
-          <CopilotMarkdownRenderer content={cleanContent} />
+      {hasContent && (
+        <div
+          className={clsx(
+            'overflow-hidden transition-all duration-200 ease-out',
+            isExpanded ? 'mt-2 max-h-[260px] opacity-100' : 'max-h-0 opacity-0'
+          )}
+        >
+          <div
+            ref={scrollContainerRef}
+            className='max-h-[260px] overflow-y-auto border-[var(--border-subtle)] border-l-2 pl-3'
+          >
+            <div className='[&_*]:!text-[var(--text-secondary)] [&_*]:!text-[13px] [&_*]:!leading-[1.6] [&_p]:!m-0 [&_p]:!mb-1.5 [&_h1]:!text-[13px] [&_h1]:!font-semibold [&_h1]:!m-0 [&_h1]:!mb-1 [&_h2]:!text-[13px] [&_h2]:!font-semibold [&_h2]:!m-0 [&_h2]:!mb-1 [&_h3]:!text-[13px] [&_h3]:!font-semibold [&_h3]:!m-0 [&_h3]:!mb-1 [&_code]:!text-[12px] [&_code]:!font-mono [&_ul]:!pl-4 [&_ul]:!my-1 [&_ol]:!pl-5 [&_ol]:!my-1 [&_li]:!my-0.5 [&_li]:!py-0 font-season text-[13px] text-[var(--text-secondary)]'>
+              <CopilotMarkdownRenderer content={cleanContent} />
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

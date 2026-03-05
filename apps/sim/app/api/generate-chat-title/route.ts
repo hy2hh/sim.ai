@@ -215,7 +215,11 @@ ${message.slice(0, 200)}`
     }
 
     const firstLine = result.output.split('\n')[0] || ''
-    const title = firstLine.trim().replace(/^["'`]|["'`]$/g, '').slice(0, 60) || null
+    const title =
+      firstLine
+        .trim()
+        .replace(/^["'`]|["'`]$/g, '')
+        .slice(0, 60) || null
     return NextResponse.json({ title })
   } catch (err) {
     logger.error('Failed to generate chat title', {
